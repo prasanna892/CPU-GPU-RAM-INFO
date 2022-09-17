@@ -1,6 +1,6 @@
 # CPU-GPU-RAM-INFO
 
-##How to run ?
+## How to run ?
   1) Open exe folder
   2) Run main.exe
 
