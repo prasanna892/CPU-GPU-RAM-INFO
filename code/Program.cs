@@ -1,10 +1,14 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using OpenHardwareMonitor.Hardware;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace HWmonitor
 {
-    class Program
+    public class Program
     {
         /**
          * Init OpenHardwareMonitor.dll Computer Object
@@ -49,11 +53,15 @@ namespace HWmonitor
         static bool CPUprint1 = true;
         static bool RAMprint1 = true;
         static bool GPUprint1 = true;
+        static bool oneShot = true;
+
+        [DllImport("User32.dll")]
+        public static extern bool ShowWindow(IntPtr hWnd, int cmdShow);
 
         /**
          * Converting list to dictionary
          **/
-        static void dictConvert(List<List<string>> list, string hardwareType_) {
+        public static void dictConvert(List<List<string>> list, string hardwareType_) {
             hardwarePropertiesDict.Add("Name", list.ElementAt(0).ElementAt(0));
             foreach (var items in list) {
                 foreach (var item in items) {
@@ -81,23 +89,16 @@ namespace HWmonitor
         /**
          * Writting all data to write.txt file
          **/
-        static void TXTList(List<List<string>> list, bool val = false, bool print_ = false) {
+        public static void TXTList(List<List<string>> list, bool val = true) {
             bool firstRun = true;
             using(StreamWriter writetext = new StreamWriter("write.txt", val)) {
                 foreach (var items in list) {
                     foreach (var item in items) {
                         if (items.Count > 1) {
                             writetext.WriteLine("   "+item);
-                            if (print_) {
-                                Console.WriteLine("     "+item);
-                            }
-                        } 
-
+                        }
                         if (firstRun) {
                             writetext.WriteLine(item);
-                            if (print_) {
-                                Console.WriteLine(item);
-                            }
                             firstRun = false;
                         }
                     }
@@ -108,7 +109,7 @@ namespace HWmonitor
         /**
          * Clear previous data
          **/
-        static void listClear() {
+        public static void listClear() {
             foreach (var list in allList) {
                 foreach (var items in list) {
                     items.RemoveRange(1, items.Count-1);
@@ -120,8 +121,14 @@ namespace HWmonitor
         /**
          * Pulls data from OpenHardwareMonitor.dll
          **/
-        static void ReportSystemInfo() {
-
+        public static void ReportSystemInfo() {
+            if (oneShot) {
+                computer.Open();
+                oneShot = false;
+            }
+            CPUprint1 = true;
+            RAMprint1 = true;
+            GPUprint1 = true;
             foreach (var hardware in computer.Hardware) {
                 hardware.Update();
                 
@@ -199,27 +206,20 @@ namespace HWmonitor
         * Main method
         **/
         static void Main(string[] args) {
-            computer.Open();
-            Console.WriteLine("Status: Running...");
-
             // loop
             while (true) {
                 ReportSystemInfo();
-                CPUprint1 = true;
-                RAMprint1 = true;
-                GPUprint1 = true;
                 dictConvert(CPUlist, "CPU");
                 dictConvert(GPUlist, "GPU");
                 dictConvert(RAMlist, "RAM");
                 string json = JsonConvert.SerializeObject(hardwareDict, Formatting.Indented);
                 File.WriteAllText("result.json", json);
                 hardwareDict.Clear();
-                TXTList(CPUlist, print_:true);
-                TXTList(GPUlist, true, true);
-                TXTList(RAMlist, true, true);
+                TXTList(CPUlist, false);
+                TXTList(GPUlist);
+                TXTList(RAMlist);
                 listClear();
                 Thread.Sleep(500);
-                Console.Clear();
             }
         }
     }
