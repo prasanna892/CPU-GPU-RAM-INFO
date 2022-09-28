@@ -2,7 +2,7 @@
 
 ## How to run ?
   1) Open exe folder
-  2) Run main.exe
+  2) Run TempINFO.exe
 
 ## Future's 
   1) It generate write.txt and result.json file after you run main.exe
