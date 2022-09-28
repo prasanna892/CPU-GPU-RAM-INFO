@@ -50,9 +50,12 @@ namespace HWmonitor
         public static Dictionary<string, Dictionary<string, string>> hardwareTypeDict = new Dictionary<string, Dictionary<string, string>>();
         public static Dictionary<string, string> hardwarePropertiesDict = new Dictionary<string, string>(); 
 
-        static bool CPUprint1 = true;
-        static bool RAMprint1 = true;
-        static bool GPUprint1 = true;
+        static bool CPUprint1;
+        static bool GPUprint1;
+        static bool RAMprint1;
+        static bool CPUFound;
+        static bool GPUFound;
+        static bool RAMFound;
         static bool oneShot = true;
 
         [DllImport("User32.dll")]
@@ -74,7 +77,7 @@ namespace HWmonitor
                 }
 
                 Dictionary<string, string> hardwarePropertiesDictN = new Dictionary<string, string>(hardwarePropertiesDict); 
-                if (items.Count > 1) {
+                if (items.Count > 1 || items.ElementAt(0).Contains('*')) {
                     hardwareTypeDict.Add(items[0], hardwarePropertiesDictN);
                 } else { 
                     hardwareTypeDict.Add("Name", hardwarePropertiesDictN);
@@ -127,25 +130,29 @@ namespace HWmonitor
                 oneShot = false;
             }
             CPUprint1 = true;
-            RAMprint1 = true;
             GPUprint1 = true;
+            RAMprint1 = true;
+            CPUFound = true;
+            GPUFound = true;
+            RAMFound = true;
             foreach (var hardware in computer.Hardware) {
                 hardware.Update();
                 
                 foreach (var sensor in hardware.Sensors) {
                     if (hardware.HardwareType == HardwareType.CPU) {
                         if (CPUprint1) {
+                            CPUFound = false;
                             CPUlist.Add(new List<string>{hardware.Name});
                             CPUprint1 = false;
                         }
                         if (sensor.SensorType == SensorType.Clock) {
-                            CPUclock.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(), 1) + " MHz");
+                            CPUclock.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(0), 1) + " MHz");
                         } else if (sensor.SensorType == SensorType.Temperature) {
-                            CPUtemp.Add(sensor.Name + ":" + sensor.Value.GetValueOrDefault() + " °C");
+                            CPUtemp.Add(sensor.Name + ":" + sensor.Value.GetValueOrDefault(0) + " °C");
                         } else if (sensor.SensorType == SensorType.Load) {
-                            CPUload.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(), 1) + " %");
+                            CPUload.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(0), 1) + " %");
                         } else if (sensor.SensorType == SensorType.Power) {
-                            CPUpower.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(), 1) + " W");
+                            CPUpower.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(0), 1) + " W");
                         }
                     }
                 }
@@ -153,19 +160,20 @@ namespace HWmonitor
                 foreach (var sensor in hardware.Sensors) {
                     if (sensor.Name.Contains("GPU")) {
                         if (GPUprint1) {
+                            GPUFound = false;
                             GPUlist.Add(new List<string>{hardware.Name});
                             GPUprint1 = false;
                         }
                         if (sensor.SensorType == SensorType.Clock) {
-                            GPUclock.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(), 1) + " MHz");
+                            GPUclock.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(0), 1) + " MHz");
                         } else if (sensor.SensorType == SensorType.Temperature) {
-                            GPUtemp.Add(sensor.Name + ":" + sensor.Value.GetValueOrDefault() + " °C");
+                            GPUtemp.Add(sensor.Name + ":" + sensor.Value.GetValueOrDefault(0) + " °C");
                         } else if (sensor.SensorType == SensorType.Load) {
-                            GPUload.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(), 1) + " %");
+                            GPUload.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(0), 1) + " %");
                         } else if (sensor.SensorType == SensorType.Power) {
-                            GPUpower.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(), 1) + " W");
+                            GPUpower.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(0), 1) + " W");
                         } else if (sensor.SensorType == SensorType.SmallData) {
-                            GPUdata.Add(sensor.Name + ":" +  Math.Round(sensor.Value.GetValueOrDefault(), 1) + " MB");
+                            GPUdata.Add(sensor.Name + ":" +  Math.Round(sensor.Value.GetValueOrDefault(0), 1) + " MB");
                         }
                     }
                 }
@@ -173,13 +181,14 @@ namespace HWmonitor
                 foreach (var sensor in hardware.Sensors) {
                     if (hardware.HardwareType == HardwareType.RAM) {
                         if (RAMprint1) {
+                            RAMFound = false;
                             RAMlist.Add(new List<string>{hardware.Name});
                             RAMprint1 = false;
                         }
                         if (sensor.SensorType == SensorType.Load) {
-                            RAMload.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(), 1) + " %");
+                            RAMload.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(0), 1) + " %");
                         } else if (sensor.SensorType == SensorType.Data) {
-                            RAMdata.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(), 1) + " GB");
+                            RAMdata.Add(sensor.Name + ":" + Math.Round(sensor.Value.GetValueOrDefault(0), 1) + " GB");
                         }
                     }
                 }
@@ -187,6 +196,15 @@ namespace HWmonitor
             /**
             * Add sub-list to main-list
             **/
+            if (CPUFound) {
+                CPUlist.Add(new List<string>{"CPU Not Found"});
+            }
+            if (GPUFound) {
+                GPUlist.Add(new List<string>{"GPU Not Found"});
+            }
+            if (RAMFound) {
+                RAMlist.Add(new List<string>{"RAM Not Found"});
+            }
             CPUlist.Add(CPUclock);
             CPUlist.Add(CPUtemp);
             CPUlist.Add(CPUload);
